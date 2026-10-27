@@ -14,7 +14,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
     "check:standard": "tsx scripts/check-standard.ts",
-    "verify": "npm run typecheck && npm run lint && npm run check:standard && npm test",
+    "verify": "npm run typecheck && npm run lint && npm run check:standard && npm test && npm run test:legacy",
     "db:up": "docker compose up -d db",
     "db:reset": "tsx --env-file-if-exists=.env scripts/db-reset.ts"
   },

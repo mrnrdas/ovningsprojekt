@@ -5,7 +5,7 @@ from price_calc import calc_price, conn
 
 dag = sys.argv[1] if len(sys.argv) > 1 else datetime.date.today().isoformat()
 cur = conn.cursor()
-cur.execute("select id from orders where status = 'paid' and created_at::date = '%s'" % dag)
+cur.execute("SELECT id FROM orders WHERE status = 'paid' AND created_at::date = %s", (dag,))
 summa = 0
 antal = 0
 for (oid,) in cur.fetchall():
