@@ -1,0 +1,4 @@
+#!/bin/sh
+# Automatisk kvalitetskontroll före commit enligt docs/standard.md
+echo "Kör automatiserad kvalitetskontroll..."
+npm run verify || exit 1
