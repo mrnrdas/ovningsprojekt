@@ -1,11 +1,21 @@
-// Återställer utvecklingsdatabasen och testdatabasen till schema och testdata.
-import { readFileSync } from "node:fs";
+// Återställer utvecklingsdatabasen och testdatabasen till schema, testdata och migreringar.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
 
 const root = path.join(__dirname, "..");
+const migrationsDir = path.join(root, "db", "migrations");
+const migrationSql = existsSync(migrationsDir)
+  ? readdirSync(migrationsDir)
+      .filter((f) => f.endsWith(".up.sql"))
+      .sort()
+      .map((f) => readFileSync(path.join(migrationsDir, f), "utf8"))
+      .join("\n")
+  : "";
+
 const sql = ["schema.sql", "seed.sql"]
   .map((f) => readFileSync(path.join(root, "db", f), "utf8"))
+  .concat(migrationSql ? [migrationSql] : [])
   .join("\n");
 
 const urls = [

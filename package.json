@@ -16,6 +16,8 @@
     "check:standard": "tsx scripts/check-standard.ts",
     "verify": "npm run typecheck && npm run lint && npm run check:standard && npm test && npm run test:legacy",
     "db:up": "docker compose up -d db",
+    "db:migrate": "tsx --env-file-if-exists=.env scripts/db-migrate.ts",
+    "db:migrate:down": "tsx --env-file-if-exists=.env scripts/db-migrate.ts --down",
     "db:reset": "tsx --env-file-if-exists=.env scripts/db-reset.ts"
   },
   "engines": {

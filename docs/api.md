@@ -11,6 +11,7 @@ Alla anrop utom `POST /customers` och `/health` kräver headern `X-Customer-Id` 
 | `POST /orders` | Lägg en beställning. Body: `{ lines: [{ product, quantity, unitPrice }], discountCode? }`. | 201, 400, 401 |
 | `GET /orders/:id` | En egen beställning med rader. | 200, 400, 401, 403, 404 |
 | `GET /orders/:id/price` | Pris för en egen beställning: `{ net, vat, total }`. Räknas av den äldre modulen. | 200, 400, 401, 403, 404 |
+| `POST /orders/:id/cancel` | Avbryt en egen beställning inom 30 minuter efter att den lades. | 200, 400, 401, 403, 404, 409 |
 
 ## Den äldre modulen
 

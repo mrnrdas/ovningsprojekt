@@ -8,6 +8,8 @@ export type Order = {
   customerId: number;
   status: string;
   discountCode: string | null;
+  createdAt?: string;
+  cancelledAt?: string | null;
   lines: { product: string; quantity: number; unitPrice: string }[];
 };
 
@@ -63,7 +65,7 @@ export async function createOrder(
 
 export async function getOrder(orderId: number, customerId: number): Promise<Result<Order>> {
   const res = await db.query(
-    `SELECT id, customer_id AS "customerId", status, discount_code AS "discountCode"
+    `SELECT id, customer_id AS "customerId", status, discount_code AS "discountCode", created_at AS "createdAt", cancelled_at AS "cancelledAt"
        FROM orders WHERE id = $1`,
     [orderId],
   );
@@ -80,4 +82,66 @@ export async function getOrder(orderId: number, customerId: number): Promise<Res
     [orderId],
   );
   return ok({ ...order, lines: lines.rows });
+}
+
+export async function cancelOrder(orderId: number, customerId: number): Promise<Result<Order>> {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const res = await client.query(
+      `SELECT id, customer_id AS "customerId", status, created_at AS "createdAt", cancelled_at AS "cancelledAt"
+         FROM orders WHERE id = $1 FOR UPDATE`,
+      [orderId],
+    );
+
+    if (res.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return err("not_found", `Beställning ${orderId} finns inte.`);
+    }
+
+    const order = res.rows[0];
+
+    // Kontrollera att beställningen tillhör kunden
+    if (order.customerId !== customerId) {
+      await client.query("ROLLBACK");
+      return err("forbidden", "Beställningen tillhör en annan kund.");
+    }
+
+    // Kontrollera att beställningen inte redan är avbruten eller skickad
+    if (order.status === "cancelled") {
+      await client.query("ROLLBACK");
+      return err("conflict", "Beställningen är redan avbruten.");
+    }
+    if (order.status === "shipped") {
+      await client.query("ROLLBACK");
+      return err("conflict", "Beställningen har redan skickats och kan inte avbrytas.");
+    }
+
+    // Tidsgränskontroll: kan endast avbrytas inom 30 minuter från lagd beställning
+    const createdAtMs = new Date(order.createdAt).getTime();
+    const nowMs = Date.now();
+    const diffMinutes = (nowMs - createdAtMs) / (1000 * 60);
+
+    if (diffMinutes > 30) {
+      await client.query("ROLLBACK");
+      return err(
+        "conflict",
+        "Beställningen kan inte avbrytas eftersom mer än 30 minuter har passerat.",
+      );
+    }
+
+    await client.query(
+      `UPDATE orders SET status = 'cancelled', cancelled_at = now() WHERE id = $1`,
+      [orderId],
+    );
+
+    await client.query("COMMIT");
+
+    return getOrder(orderId, customerId);
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
 }
